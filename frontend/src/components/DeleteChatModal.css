@@ -1,0 +1,77 @@
+.delete-chat-modal {
+  background: var(--modal-bg);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.delete-chat-modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+}
+
+.delete-chat-modal-body {
+  margin-bottom: 24px;
+}
+
+.delete-chat-modal-body p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.delete-chat-modal-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.delete-warning {
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.delete-chat-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-delete-cancel,
+.btn-delete-confirm {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-delete-cancel {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-delete-cancel:hover {
+  background: var(--bg-hover);
+}
+
+.btn-delete-confirm {
+  background: #ef4444;
+  color: white;
+  border: none;
+}
+
+.btn-delete-confirm:hover {
+  background: #dc2626;
+}
+
+[data-theme="light"] .delete-chat-modal {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+
