@@ -33,7 +33,7 @@ jobs:
         run: npx tsc --noEmit
       
       - name: Build backend
-        run: NODE_OPTIONS=--max-old-space-size=4096 npm run build
+        run: npm run build
       
       - name: Run tests (if available)
         run: npm test || echo "No tests configured"

@@ -39,12 +39,7 @@ jobs:
         run: npx tsc --noEmit
       
       - name: Build
-        run: |
-          if [ "${{ matrix.project }}" == "backend" ]; then
-            NODE_OPTIONS=--max-old-space-size=4096 npm run build
-          else
-            npm run build
-          fi
+        run: npm run build
         env:
           VITE_API_BASE_URL: ${{ matrix.project == 'frontend' && secrets.VITE_API_BASE_URL || 'http://localhost:3001' }}
       
@@ -67,7 +62,7 @@ jobs:
         run: |
           cd backend
           npm ci
-          NODE_OPTIONS=--max-old-space-size=4096 npm run build
+          npm run build
       
       - name: Deployment notification
         run: |

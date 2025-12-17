@@ -21,7 +21,7 @@ jobs:
         run: |
           cd backend
           npm ci
-          NODE_OPTIONS=--max-old-space-size=4096 npm run build
+          npm run build
       
       - name: Notify Render (via webhook)
         if: success()

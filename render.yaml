@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     branch: assistlyv1
-    buildCommand: cd backend && npm install && NODE_OPTIONS=--max-old-space-size=6144 npm run build
+    buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
