@@ -1,0 +1,37 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches: [ Assistly ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  deploy:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build check
+        run: |
+          cd backend
+          npm ci
+          NODE_OPTIONS=--max-old-space-size=4096 npm run build
+      
+      - name: Notify Render (via webhook)
+        if: success()
+        run: |
+          echo "Backend build successful. Render will auto-deploy on push to Assistly."
+          echo "If you have Render webhook configured, it will trigger automatically."
+        # Uncomment below if you set up Render webhook
+        # env:
+        #   RENDER_WEBHOOK_URL: ${{ secrets.RENDER_WEBHOOK_URL }}
+        # run: |
+        #   curl -X POST "$RENDER_WEBHOOK_URL"
+
+

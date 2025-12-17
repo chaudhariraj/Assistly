@@ -3,7 +3,8 @@ services:
     name: assistly-backend
     env: node
     plan: free
-    buildCommand: cd backend && npm install && npm run build
+    branch: Assistly
+    buildCommand: cd backend && npm install && NODE_OPTIONS=--max-old-space-size=4096 npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
@@ -24,4 +25,5 @@ services:
         sync: false
       - key: BACKEND_URL
         sync: false
+
 

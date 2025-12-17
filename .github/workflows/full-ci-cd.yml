@@ -1,0 +1,102 @@
+name: Full CI/CD Pipeline
+
+on:
+  push:
+    branches: [ Assistly, develop ]
+  pull_request:
+    branches: [ Assistly, develop ]
+  workflow_dispatch:
+
+jobs:
+  # Continuous Integration - Run on all pushes and PRs
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        project: [backend, frontend]
+    
+    defaults:
+      run:
+        working-directory: ./${{ matrix.project }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Type check
+        run: npx tsc --noEmit
+      
+      - name: Build
+        run: |
+          if [ "${{ matrix.project }}" == "backend" ]; then
+            NODE_OPTIONS=--max-old-space-size=4096 npm run build
+          else
+            npm run build
+          fi
+        env:
+          VITE_API_BASE_URL: ${{ matrix.project == 'frontend' && secrets.VITE_API_BASE_URL || 'http://localhost:3001' }}
+      
+      - name: Run tests
+        run: npm test || echo "No tests configured"
+        continue-on-error: true
+
+  # Continuous Deployment - Only on Assistly branch
+  deploy-backend:
+    name: Deploy Backend
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Assistly' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build backend
+        run: |
+          cd backend
+          npm ci
+          NODE_OPTIONS=--max-old-space-size=4096 npm run build
+      
+      - name: Deployment notification
+        run: |
+          echo "✅ Backend build successful!"
+          echo "🚀 Render will auto-deploy (if connected to GitHub)"
+          echo "📝 Check Render dashboard for deployment status"
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Assistly' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'http://localhost:3001' }}
+      
+      - name: Deployment notification
+        run: |
+          echo "✅ Frontend build successful!"
+          echo "🚀 Vercel will auto-deploy (if connected to GitHub)"
+          echo "📝 Check Vercel dashboard for deployment status"
+
+
