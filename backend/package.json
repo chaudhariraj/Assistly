@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "swc src -d dist --strip-leading-paths",
+    "build": "node build.js",
     "build:typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "test": "jest"
