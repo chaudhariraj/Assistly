@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import { errorHandler } from './middleware/errorHandler';
-import { checkAuth } from './middleware/auth';
 import { chatRoutes } from './routes/chat';
 import { calendarRoutes } from './routes/calendar';
 import { contactsRoutes } from './routes/contacts';
