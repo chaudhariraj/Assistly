@@ -91,6 +91,7 @@ export async function runMigrations(): Promise<void> {
     }
     
     const schema = readFileSync(schemaPath, 'utf-8');
+    console.log(`📄 Schema file loaded: ${schema.length} characters`);
     
     // Check if tables already exist
     const tablesCheck = await pool.query(`
@@ -111,19 +112,62 @@ export async function runMigrations(): Promise<void> {
     const statements = parseSQLStatements(schema);
     console.log(`📝 Parsed ${statements.length} SQL statements`);
     
+    // Log first few statements for debugging
+    if (statements.length > 0) {
+      console.log(`   First statement: ${statements[0].substring(0, 80)}...`);
+      console.log(`   Last statement: ${statements[statements.length - 1].substring(0, 80)}...`);
+    }
+    
     // Execute each statement
+    const errors: string[] = [];
+    const criticalErrors: string[] = [];
+    
     for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i];
+      const statement = statements[i].trim();
+      if (!statement) continue;
+      
+      const statementType = statement.substring(0, 30).toUpperCase();
+      const isTableCreate = statementType.includes('CREATE TABLE');
+      
       try {
-        await pool.query(statement);
+        const result = await pool.query(statement);
+        if (isTableCreate) {
+          const tableName = statement.match(/CREATE TABLE.*?(\w+)/i)?.[1] || 'unknown';
+          console.log(`✅ Created table: ${tableName}`);
+        }
       } catch (error: any) {
+        const errorMsg = error.message || String(error);
+        const errorCode = error.code || '';
+        
         // Ignore "already exists" errors
-        if (!error.message.includes('already exists') && 
-            !error.message.includes('duplicate') &&
-            !error.message.includes('already defined')) {
-          console.warn(`⚠️  Statement ${i + 1} warning: ${error.message.substring(0, 150)}`);
+        if (errorMsg.includes('already exists') || 
+            errorMsg.includes('duplicate') ||
+            errorMsg.includes('already defined') ||
+            errorCode === '42P07' || // duplicate_table
+            errorCode === '42710') { // duplicate_object
+          // Silently ignore - these are expected
+        } else {
+          // Log actual errors
+          const errorInfo = `Statement ${i + 1} [${statementType.substring(0, 20)}]: ${errorMsg.substring(0, 150)}`;
+          console.error(`❌ ${errorInfo}`);
+          
+          if (isTableCreate) {
+            criticalErrors.push(errorInfo);
+          } else {
+            errors.push(errorInfo);
+          }
         }
       }
+    }
+    
+    if (criticalErrors.length > 0) {
+      console.error(`❌ ${criticalErrors.length} critical errors (table creation failed):`);
+      criticalErrors.forEach(err => console.error(`   - ${err}`));
+      throw new Error('Critical migration errors: table creation failed');
+    }
+    
+    if (errors.length > 0) {
+      console.warn(`⚠️  ${errors.length} non-critical errors (indexes/triggers may have failed)`);
     }
     
     // Verify tables were created
