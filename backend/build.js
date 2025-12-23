@@ -57,6 +57,17 @@ function tryEsbuild() {
         });
       })
     ).then(() => {
+      // Copy schema.sql to dist
+      const { copyFileSync } = require('fs');
+      const schemaSrc = join(__dirname, 'src', 'db', 'schema.sql');
+      const schemaDest = join(distDir, 'db', 'schema.sql');
+      if (existsSync(schemaSrc)) {
+        if (!existsSync(dirname(schemaDest))) {
+          mkdirSync(dirname(schemaDest), { recursive: true });
+        }
+        copyFileSync(schemaSrc, schemaDest);
+        console.log('✓ Copied schema.sql to dist');
+      }
       console.log('✓ Build completed with esbuild!');
       return true;
     });

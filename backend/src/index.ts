@@ -10,6 +10,8 @@ import { calendarRoutes } from './routes/calendar';
 import { contactsRoutes } from './routes/contacts';
 import { authRoutes, loadUserFromSession } from './routes/auth';
 import { notificationRoutes } from './routes/notifications';
+import { testConnection } from './db/connection';
+import { runMigrations } from './db/migrate-fixed';
 
 dotenv.config();
 
@@ -62,7 +64,31 @@ app.get('/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Test database connection
+    const connected = await testConnection();
+    if (!connected) {
+      console.warn('⚠️  Database connection failed, but continuing...');
+    } else {
+      // Run migrations
+      try {
+        await runMigrations();
+      } catch (error) {
+        console.error('⚠️  Migration error:', error);
+        // Continue even if migrations fail (tables might already exist)
+      }
+    }
+  } catch (error) {
+    console.error('⚠️  Database initialization error:', error);
+    // Continue even if database fails (for backward compatibility)
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+  });
+}
+
+startServer();
