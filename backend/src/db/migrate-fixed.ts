@@ -10,82 +10,72 @@ function parseSQLStatements(sql: string): string[] {
   let current = '';
   let inDollarQuote = false;
   let dollarTag = '';
-  let i = 0;
-
-  while (i < sql.length) {
+  
+  for (let i = 0; i < sql.length; i++) {
     const char = sql[i];
     const nextChar = sql[i + 1];
-
-    // Check for dollar-quoted strings ($$ ... $$)
+    
+    // Handle dollar-quoted strings (for functions)
     if (char === '$' && nextChar === '$') {
       if (!inDollarQuote) {
-        // Start of dollar quote
         inDollarQuote = true;
-        // Extract the tag (could be $$ or $tag$)
         let tagEnd = i + 2;
         while (tagEnd < sql.length && sql[tagEnd] !== '$') {
           tagEnd++;
         }
         dollarTag = sql.substring(i, tagEnd + 1);
         current += dollarTag;
-        i = tagEnd + 1;
+        i = tagEnd;
         continue;
       } else {
-        // Check if this is the closing tag
         const potentialTag = sql.substring(i, i + dollarTag.length);
         if (potentialTag === dollarTag) {
-          // End of dollar quote
           inDollarQuote = false;
           current += dollarTag;
-          i += dollarTag.length;
+          i += dollarTag.length - 1;
           continue;
         }
       }
     }
-
-    // If we're in a dollar quote, just add the character
+    
     if (inDollarQuote) {
       current += char;
-      i++;
       continue;
     }
-
-    // Check for semicolon (statement separator)
+    
+    // Split by semicolon
     if (char === ';') {
-      const trimmed = current.trim();
-      // Skip only if completely empty or just whitespace/comments
-      if (trimmed.length > 0) {
-        // Remove standalone comment lines but keep the SQL
-        const cleaned = trimmed.split('\n')
-          .filter(line => line.trim().length > 0 && !line.trim().startsWith('--'))
-          .join('\n')
-          .trim();
-        if (cleaned.length > 0) {
-          statements.push(cleaned);
-        }
+      const cleaned = current
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.startsWith('--'))
+        .join('\n')
+        .trim();
+      
+      if (cleaned.length > 0) {
+        statements.push(cleaned);
       }
       current = '';
-      i++;
       continue;
     }
-
+    
     current += char;
-    i++;
   }
-
-  // Add final statement if any
-  const trimmed = current.trim();
-  if (trimmed.length > 0) {
-    const cleaned = trimmed.split('\n')
-      .filter(line => line.trim().length > 0 && !line.trim().startsWith('--'))
+  
+  // Add final statement
+  if (current.trim().length > 0) {
+    const cleaned = current
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith('--'))
       .join('\n')
       .trim();
     if (cleaned.length > 0) {
       statements.push(cleaned);
     }
   }
-
-  return statements.filter(s => s.trim().length > 0);
+  
+  return statements;
 }
 
 /**
@@ -115,6 +105,9 @@ export async function runMigrations(): Promise<void> {
     // Count semicolons (should match number of statements roughly)
     const semicolonCount = (schema.match(/;/g) || []).length;
     console.log(`   Semicolons found: ${semicolonCount}`);
+    
+    // Show first 500 chars of schema for debugging
+    console.log(`   First 500 chars: ${schema.substring(0, 500)}`);
     
     // Check if tables already exist
     const tablesCheck = await pool.query(`

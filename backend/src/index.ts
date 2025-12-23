@@ -11,7 +11,7 @@ import { contactsRoutes } from './routes/contacts';
 import { authRoutes, loadUserFromSession } from './routes/auth';
 import { notificationRoutes } from './routes/notifications';
 import { testConnection } from './db/connection';
-import { runMigrations } from './db/migrate-fixed';
+import { runMigrations } from './db/migrate-simple';
 
 dotenv.config();
 
