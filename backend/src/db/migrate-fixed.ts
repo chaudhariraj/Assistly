@@ -53,8 +53,16 @@ function parseSQLStatements(sql: string): string[] {
     // Check for semicolon (statement separator)
     if (char === ';') {
       const trimmed = current.trim();
-      if (trimmed && !trimmed.startsWith('--')) {
-        statements.push(trimmed);
+      // Skip only if completely empty or just whitespace/comments
+      if (trimmed.length > 0) {
+        // Remove standalone comment lines but keep the SQL
+        const cleaned = trimmed.split('\n')
+          .filter(line => line.trim().length > 0 && !line.trim().startsWith('--'))
+          .join('\n')
+          .trim();
+        if (cleaned.length > 0) {
+          statements.push(cleaned);
+        }
       }
       current = '';
       i++;
@@ -67,11 +75,17 @@ function parseSQLStatements(sql: string): string[] {
 
   // Add final statement if any
   const trimmed = current.trim();
-  if (trimmed && !trimmed.startsWith('--')) {
-    statements.push(trimmed);
+  if (trimmed.length > 0) {
+    const cleaned = trimmed.split('\n')
+      .filter(line => line.trim().length > 0 && !line.trim().startsWith('--'))
+      .join('\n')
+      .trim();
+    if (cleaned.length > 0) {
+      statements.push(cleaned);
+    }
   }
 
-  return statements.filter(s => s.length > 0);
+  return statements.filter(s => s.trim().length > 0);
 }
 
 /**
@@ -91,7 +105,16 @@ export async function runMigrations(): Promise<void> {
     }
     
     const schema = readFileSync(schemaPath, 'utf-8');
-    console.log(`📄 Schema file loaded: ${schema.length} characters`);
+    console.log(`📄 Schema file loaded: ${schema.length} characters from ${schemaPath}`);
+    
+    // Debug: Check if CREATE TABLE statements are in the file
+    const hasCreateTable = schema.includes('CREATE TABLE');
+    const hasCreateIndex = schema.includes('CREATE INDEX');
+    console.log(`   Contains CREATE TABLE: ${hasCreateTable}, CREATE INDEX: ${hasCreateIndex}`);
+    
+    // Count semicolons (should match number of statements roughly)
+    const semicolonCount = (schema.match(/;/g) || []).length;
+    console.log(`   Semicolons found: ${semicolonCount}`);
     
     // Check if tables already exist
     const tablesCheck = await pool.query(`
@@ -112,11 +135,11 @@ export async function runMigrations(): Promise<void> {
     const statements = parseSQLStatements(schema);
     console.log(`📝 Parsed ${statements.length} SQL statements`);
     
-    // Log first few statements for debugging
-    if (statements.length > 0) {
-      console.log(`   First statement: ${statements[0].substring(0, 80)}...`);
-      console.log(`   Last statement: ${statements[statements.length - 1].substring(0, 80)}...`);
-    }
+    // Log all statements for debugging
+    statements.forEach((stmt, idx) => {
+      const preview = stmt.substring(0, 60).replace(/\s+/g, ' ');
+      console.log(`   [${idx + 1}] ${preview}...`);
+    });
     
     // Execute each statement
     const errors: string[] = [];
