@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/swcrc",
   "jsc": {
     "target": "es2022",
     "parser": {
@@ -13,8 +12,8 @@
       "decoratorMetadata": true
     },
     "keepClassNames": true,
-    "externalHelpers": false,
-    "loose": false
+    "baseUrl": ".",
+    "paths": {}
   },
   "module": {
     "type": "commonjs",
@@ -23,11 +22,6 @@
     "lazy": false,
     "noInterop": false
   },
-  "minify": false,
-  "sourceMaps": false
+  "sourceMaps": false,
+  "minify": false
 }
-
-
-
-
-
