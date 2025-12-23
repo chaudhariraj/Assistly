@@ -56,6 +56,23 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/contacts', contactsRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Assistly API Server',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      chat: '/api/chat',
+      calendar: '/api/calendar',
+      contacts: '/api/contacts',
+      notifications: '/api/notifications'
+    }
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
