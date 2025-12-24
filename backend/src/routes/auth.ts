@@ -4,6 +4,16 @@ import { findOrCreateUser, saveUserTokens, findUserByEmail } from '../services/u
 
 const router = Router();
 
+// Helper function to normalize frontend URL (remove trailing slashes and whitespace)
+function getFrontendUrl(): string {
+  const url = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .trim()
+    .replace(/\s+/g, '') // Remove ALL spaces (not just trim)
+    .replace(/\/+$/, ''); // Remove trailing slashes
+  console.log('Frontend URL normalized:', url);
+  return url;
+}
+
 // Function to get OAuth2 client (lazy initialization to ensure env vars are loaded)
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -157,18 +167,25 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       });
 
       // Save tokens to database
-      await saveUserTokens(dbUser.id, {
-        access_token: tokens.access_token || '',
-        refresh_token: tokens.refresh_token || '',
-        expiry_date: tokens.expiry_date || undefined,
-        token_type: tokens.token_type || 'Bearer',
-        scope: tokens.scope || undefined
-      });
-
-      console.log(`User saved to database: ${dbUser.email} (ID: ${dbUser.id})`);
-    } catch (dbError) {
-      console.error('Error saving user to database:', dbError);
+      if (dbUser && dbUser.id) {
+        try {
+          await saveUserTokens(dbUser.id, {
+            access_token: tokens.access_token || '',
+            refresh_token: tokens.refresh_token || '',
+            expiry_date: tokens.expiry_date || undefined,
+            token_type: tokens.token_type || 'Bearer',
+            scope: tokens.scope || undefined
+          });
+          console.log(`User saved to database: ${dbUser.email} (ID: ${dbUser.id})`);
+        } catch (tokenError: any) {
+          console.error('Error saving tokens to database (non-critical):', tokenError.message);
+          // Continue - tokens are in session anyway
+        }
+      }
+    } catch (dbError: any) {
+      console.error('Error saving user to database (non-critical):', dbError.message);
       // Continue with session even if DB save fails
+      // This allows the app to work even if database is temporarily unavailable
     }
 
     // Store user session with tokens and database ID

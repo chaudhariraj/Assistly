@@ -22,7 +22,19 @@ export interface CreateUserData {
  * Find or create a user in the database
  */
 export async function findOrCreateUser(data: CreateUserData): Promise<User> {
-  const client = await pool.connect();
+  let client;
+  try {
+    // Try to get connection with timeout
+    client = await Promise.race([
+      pool.connect(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 5000)
+      )
+    ]) as any;
+  } catch (error) {
+    console.error('Failed to get database connection:', error);
+    throw new Error('Database connection failed');
+  }
   
   try {
     // First, try to find existing user by email or google_id
@@ -52,11 +64,18 @@ export async function findOrCreateUser(data: CreateUserData): Promise<User> {
     );
 
     return result.rows[0];
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in findOrCreateUser:', error);
+    // Check if it's a connection error or table doesn't exist
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+      console.error('Database connection or table issue:', error.message);
+      throw new Error('Database not available');
+    }
     throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -115,7 +134,18 @@ export async function saveUserTokens(
     scope?: string;
   }
 ): Promise<void> {
-  const client = await pool.connect();
+  let client;
+  try {
+    client = await Promise.race([
+      pool.connect(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout')), 5000)
+      )
+    ]) as any;
+  } catch (error) {
+    console.error('Failed to get database connection for saveUserTokens:', error);
+    throw new Error('Database connection failed');
+  }
   
   try {
     // Check if tokens already exist
@@ -155,11 +185,17 @@ export async function saveUserTokens(
         ]
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in saveUserTokens:', error);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+      console.error('Database connection or table issue:', error.message);
+      throw new Error('Database not available');
+    }
     throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
