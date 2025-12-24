@@ -7,8 +7,19 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!_next|api|.*\\.).*)",
       "destination": "/index.html"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/_next/(.*)",
+      "dest": "/404.html",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
