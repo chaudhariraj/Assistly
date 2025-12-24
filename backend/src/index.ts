@@ -28,6 +28,8 @@ const allowedOrigins = [
   'https://assistly.vercel.app',
   /^https:\/\/assistly.*\.vercel\.app$/, // Allow all Vercel preview deployments
   /^https:\/\/.*\.onrender\.com$/, // Allow all Render deployments
+  /^https:\/\/.*\.cloudfront\.net$/, // Allow all CloudFront distributions
+  /^https:\/\/.*\.s3-website.*\.amazonaws\.com$/, // Allow S3 website endpoints
   'http://localhost:5173'
 ];
 
