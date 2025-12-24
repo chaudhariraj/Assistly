@@ -28,9 +28,8 @@ services:
       - key: DATABASE_URL
         sync: false
 
-  - type: web
+  - type: static
     name: assistly-frontend
-    env: static
     plan: free
     branch: assistlyv1
     buildCommand: cd frontend && npm install && npm run build
