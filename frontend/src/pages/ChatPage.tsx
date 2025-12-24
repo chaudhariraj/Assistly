@@ -73,9 +73,12 @@ const ChatPage = ({ setIsAuthenticated }: ChatPageProps) => {
       .then((data) => {
         if (data.success && data.user) {
           setUser(data.user);
+        } else {
+          console.warn('Profile data not available:', data);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error fetching profile:', error);
         setIsAuthenticated(false);
       });
 
@@ -309,9 +312,17 @@ const ChatPage = ({ setIsAuthenticated }: ChatPageProps) => {
 
   useEffect(() => {
     // Initialize with a new chat if none exist
-    const savedChats = localStorage.getItem('assistly-chats');
-    if (!savedChats && chats.length === 0) {
-      createNewChat();
+    try {
+      const savedChats = localStorage.getItem('assistly-chats');
+      if (!savedChats && chats.length === 0) {
+        createNewChat();
+      }
+    } catch (error) {
+      console.error('Error initializing chats:', error);
+      // Create a default chat if initialization fails
+      if (chats.length === 0) {
+        createNewChat();
+      }
     }
   }, []);
 

@@ -38,8 +38,18 @@ export const checkAuthStatus = async (): Promise<AuthStatus> => {
 };
 
 export const getProfile = async () => {
-  const response = await api.get('/api/auth/profile');
-  return response.data;
+  try {
+    const response = await api.get('/api/auth/profile');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching profile:', error);
+    // Return a safe default structure
+    return {
+      success: false,
+      user: null,
+      error: error?.response?.data?.message || 'Failed to fetch profile'
+    };
+  }
 };
 
 export const sendChatMessage = async (
