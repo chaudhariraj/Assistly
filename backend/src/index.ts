@@ -27,6 +27,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'https://assistly.vercel.app',
   /^https:\/\/assistly.*\.vercel\.app$/, // Allow all Vercel preview deployments
+  /^https:\/\/.*\.onrender\.com$/, // Allow all Render deployments
   'http://localhost:5173'
 ];
 
@@ -59,24 +60,25 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.set('trust proxy', 1);
+ 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET!,
   resave: false,
   saveUninitialized: false,
-  name: 'assistly.sid', // Custom session name
+  name: 'assistly.sid',
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,          // REQUIRED on HTTPS
     httpOnly: true,
-    sameSite: 'lax', // Allow cross-site requests
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days - longer persistence
+    sameSite: 'none',      // REQUIRED for cross-domain OAuth
+    maxAge: 30 * 24 * 60 * 60 * 1000
   }
 }));
 
+
 // Load user from session
 app.use(loadUserFromSession);
-
 // Auth routes (must be before protected routes)
 app.use('/api/auth', authRoutes);
 
@@ -87,19 +89,11 @@ app.use('/api/contacts', contactsRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Root route
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Assistly API Server',
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      chat: '/api/chat',
-      calendar: '/api/calendar',
-      contacts: '/api/contacts',
-      notifications: '/api/notifications'
-    }
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'assistly-api',
+    uptime: process.uptime()
   });
 });
 
