@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { google } from 'googleapis';
+import { findOrCreateUser, saveUserTokens, findUserByEmail } from '../services/userService';
 
 const router = Router();
 
@@ -140,11 +141,42 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const userInfo = await oauth2.userinfo.get();
 
-    // Store user session with tokens
+    const email = userInfo.data.email || '';
+    const name = userInfo.data.name || '';
+    const picture = userInfo.data.picture || undefined;
+    const googleId = userInfo.data.id || email; // Use email as fallback for google_id
+
+    // Save or update user in database
+    let dbUser;
+    try {
+      dbUser = await findOrCreateUser({
+        google_id: googleId,
+        email: email,
+        name: name,
+        picture: picture
+      });
+
+      // Save tokens to database
+      await saveUserTokens(dbUser.id, {
+        access_token: tokens.access_token || '',
+        refresh_token: tokens.refresh_token || '',
+        expiry_date: tokens.expiry_date || undefined,
+        token_type: tokens.token_type || 'Bearer',
+        scope: tokens.scope || undefined
+      });
+
+      console.log(`User saved to database: ${dbUser.email} (ID: ${dbUser.id})`);
+    } catch (dbError) {
+      console.error('Error saving user to database:', dbError);
+      // Continue with session even if DB save fails
+    }
+
+    // Store user session with tokens and database ID
     req.session.user = {
-      email: userInfo.data.email || '',
-      name: userInfo.data.name || '',
-      picture: userInfo.data.picture || undefined,
+      id: dbUser?.id || undefined, // Include database ID
+      email: email,
+      name: name,
+      picture: picture,
       tokens: {
         access_token: tokens.access_token || '',
         refresh_token: tokens.refresh_token || '', // Ensure refresh token is saved
@@ -156,9 +188,9 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth?error=session_error`);
+        return res.redirect(`${getFrontendUrl()}/auth?error=session_error`);
       }
-      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/chat`);
+      res.redirect(`${getFrontendUrl()}/chat`);
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
@@ -188,6 +220,24 @@ export const loadUserFromSession = async (req: Request, res: Response, next: Nex
   if (req.session.user) {
     const user = req.session.user;
     
+    // If user doesn't have database ID, try to find it
+    if (!user.id && user.email) {
+      try {
+        const dbUser = await findUserByEmail(user.email);
+        if (dbUser) {
+          // Update session with database ID
+          req.session.user = {
+            ...user,
+            id: dbUser.id
+          };
+          req.session.save(() => {});
+        }
+      } catch (error) {
+        console.error('Error looking up user in database:', error);
+        // Continue without database ID
+      }
+    }
+    
     // Check if access token is expired and refresh if needed
     if (user.tokens.refresh_token && user.tokens.expiry_date) {
       const isExpired = user.tokens.expiry_date < Date.now() + 5 * 60 * 1000; // 5 min buffer
@@ -210,6 +260,19 @@ export const loadUserFromSession = async (req: Request, res: Response, next: Nex
               expiry_date: credentials.expiry_date || user.tokens.expiry_date,
             }
           };
+          
+          // Update tokens in database if user has ID
+          if (user.id) {
+            try {
+              await saveUserTokens(user.id, {
+                access_token: credentials.access_token || user.tokens.access_token,
+                refresh_token: user.tokens.refresh_token,
+                expiry_date: credentials.expiry_date || user.tokens.expiry_date
+              });
+            } catch (dbError) {
+              console.error('Error updating tokens in database:', dbError);
+            }
+          }
           
           req.session.save(() => {});
         } catch (error) {
