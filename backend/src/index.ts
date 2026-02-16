@@ -65,15 +65,16 @@ app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
  
 // Session configuration
+const isProd = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: process.env.SESSION_SECRET!,
   resave: false,
   saveUninitialized: false,
   name: 'assistly.sid',
   cookie: {
-    secure: true,          // REQUIRED on HTTPS
+    secure: isProd,                    // allow HTTP in local dev; HTTPS only in prod
     httpOnly: true,
-    sameSite: 'none',      // REQUIRED for cross-domain OAuth
+    sameSite: isProd ? 'none' : 'lax', // cross-site in prod, simpler for localhost
     maxAge: 30 * 24 * 60 * 60 * 1000
   }
 }));

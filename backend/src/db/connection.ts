@@ -16,10 +16,10 @@ export const pool = new Pool({
 export async function testConnection(): Promise<boolean> {
   try {
     const result = await pool.query('SELECT NOW()');
-    console.log('✅ Database connected:', result.rows[0].now);
+    console.log('Database connected:', result.rows[0].now);
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error('Database connection failed:', error);
     return false;
   }
 }
@@ -34,4 +34,5 @@ process.on('SIGTERM', async () => {
   await pool.end();
   process.exit(0);
 });
+
 

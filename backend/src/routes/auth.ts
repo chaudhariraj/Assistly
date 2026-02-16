@@ -8,9 +8,8 @@ const router = Router();
 function getFrontendUrl(): string {
   const url = (process.env.FRONTEND_URL || 'http://localhost:5173')
     .trim()
-    .replace(/\s+/g, '') // Remove ALL spaces (not just trim)
-    .replace(/\/+$/, ''); // Remove trailing slashes
-  console.log('Frontend URL normalized:', url);
+    .replace(/\s+/g, '') // remove all spaces
+    .replace(/\/+$/, ''); // remove trailing slashes
   return url;
 }
 
@@ -154,19 +153,18 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     const email = userInfo.data.email || '';
     const name = userInfo.data.name || '';
     const picture = userInfo.data.picture || undefined;
-    const googleId = userInfo.data.id || email; // Use email as fallback for google_id
+    const googleId = userInfo.data.id || email;
 
-    // Save or update user in database
+    // Save or update user in database (non-blocking on failure)
     let dbUser;
     try {
       dbUser = await findOrCreateUser({
         google_id: googleId,
-        email: email,
-        name: name,
-        picture: picture
+        email,
+        name,
+        picture
       });
 
-      // Save tokens to database
       if (dbUser && dbUser.id) {
         try {
           await saveUserTokens(dbUser.id, {
@@ -176,28 +174,24 @@ router.get('/google/callback', async (req: Request, res: Response) => {
             token_type: tokens.token_type || 'Bearer',
             scope: tokens.scope || undefined
           });
-          console.log(`User saved to database: ${dbUser.email} (ID: ${dbUser.id})`);
-        } catch (tokenError: any) {
-          console.error('Error saving tokens to database (non-critical):', tokenError.message);
-          // Continue - tokens are in session anyway
+        } catch (tokenErr) {
+          console.error('Error saving tokens (non-critical):', tokenErr);
         }
       }
-    } catch (dbError: any) {
-      console.error('Error saving user to database (non-critical):', dbError.message);
-      // Continue with session even if DB save fails
-      // This allows the app to work even if database is temporarily unavailable
+    } catch (dbErr) {
+      console.error('Error saving user to database (non-critical):', dbErr);
     }
 
-    // Store user session with tokens and database ID
+    // Store user session with tokens and db id (if available)
     req.session.user = {
-      id: dbUser?.id || undefined, // Include database ID
-      email: email,
-      name: name,
-      picture: picture,
+      id: dbUser?.id,
+      email,
+      name,
+      picture,
       tokens: {
         access_token: tokens.access_token || '',
-        refresh_token: tokens.refresh_token || '', // Ensure refresh token is saved
-        expiry_date: tokens.expiry_date || undefined || undefined
+        refresh_token: tokens.refresh_token || '',
+        expiry_date: tokens.expiry_date || undefined
       }
     };
 
@@ -211,7 +205,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth?error=oauth_error`);
+    res.redirect(`${getFrontendUrl()}/auth?error=oauth_error`);
   }
 });
 
@@ -236,25 +230,20 @@ router.post('/logout', (req: Request, res: Response) => {
 export const loadUserFromSession = async (req: Request, res: Response, next: NextFunction) => {
   if (req.session.user) {
     const user = req.session.user;
-    
-    // If user doesn't have database ID, try to find it
+
+    // If user has no db id, try to backfill
     if (!user.id && user.email) {
       try {
         const dbUser = await findUserByEmail(user.email);
         if (dbUser) {
-          // Update session with database ID
-          req.session.user = {
-            ...user,
-            id: dbUser.id
-          };
+          req.session.user = { ...user, id: dbUser.id };
           req.session.save(() => {});
         }
-      } catch (error) {
-        console.error('Error looking up user in database:', error);
-        // Continue without database ID
+      } catch (lookupErr) {
+        console.error('DB lookup error (non-critical):', lookupErr);
       }
     }
-    
+
     // Check if access token is expired and refresh if needed
     if (user.tokens.refresh_token && user.tokens.expiry_date) {
       const isExpired = user.tokens.expiry_date < Date.now() + 5 * 60 * 1000; // 5 min buffer
@@ -278,19 +267,19 @@ export const loadUserFromSession = async (req: Request, res: Response, next: Nex
             }
           };
           
-          // Update tokens in database if user has ID
-          if (user.id) {
+          // Update tokens in DB if we have user id
+          if (req.session.user.id) {
             try {
-              await saveUserTokens(user.id, {
+              await saveUserTokens(req.session.user.id, {
                 access_token: credentials.access_token || user.tokens.access_token,
                 refresh_token: user.tokens.refresh_token,
                 expiry_date: credentials.expiry_date || user.tokens.expiry_date
               });
-            } catch (dbError) {
-              console.error('Error updating tokens in database:', dbError);
+            } catch (tokenErr) {
+              console.error('Error updating tokens in DB (non-critical):', tokenErr);
             }
           }
-          
+
           req.session.save(() => {});
         } catch (error) {
           console.error('Error refreshing token:', error);

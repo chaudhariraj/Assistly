@@ -63,11 +63,11 @@ function getUserGraph(userTokens: { access_token: string; refresh_token?: string
   }
 
   const graph = new StateGraph(MessagesAnnotation)
-    .addNode("assistant", callModel)
+    .addNode("llm", callModel)
     .addNode("tools", toolNode)
-    .addEdge("__start__", "assistant")
-    .addEdge("tools", "assistant")
-    .addConditionalEdges("assistant", shouldContinue, {
+    .addEdge("__start__", "llm")
+    .addEdge("tools", "llm")
+    .addConditionalEdges("llm", shouldContinue, {
       __end__: END,
       tools: 'tools',
     });
