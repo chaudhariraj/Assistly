@@ -33,7 +33,7 @@ function getUserGraph(userTokens: { access_token: string; refresh_token?: string
     userTools.smartCreateEventTool,
     userTools.smartUpdateEventTool,
     userTools.deleteCalendarEventsTool,
-    userTools.createContactTool,
+    userTools.createContactTool,  
     userTools.updateContactTool,
     userTools.deleteContactTool,
     scheduleMeetingTool

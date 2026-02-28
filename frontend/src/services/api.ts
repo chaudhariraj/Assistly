@@ -34,7 +34,7 @@ export interface AuthStatus {
 
 export const checkAuthStatus = async (): Promise<AuthStatus> => {
   const response = await api.get<AuthStatus>('/api/auth/status');
-  return response.data;
+    return response.data;
 };
 
 export const getProfile = async () => {

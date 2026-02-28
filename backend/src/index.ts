@@ -11,7 +11,7 @@ import { contactsRoutes } from './routes/contacts';
 import { authRoutes, loadUserFromSession } from './routes/auth';
 import { notificationRoutes } from './routes/notifications';
 import { testConnection } from './db/connection';
-import { runMigrations } from './db/migrate-simple';
+import { runMigrations } from './db/migrate';
 
 dotenv.config();
 
@@ -26,10 +26,6 @@ app.use(helmet({
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'https://assistly.vercel.app',
-  /^https:\/\/assistly.*\.vercel\.app$/, // Allow all Vercel preview deployments
-  /^https:\/\/.*\.onrender\.com$/, // Allow all Render deployments
-  /^https:\/\/.*\.cloudfront\.net$/, // Allow all CloudFront distributions
-  /^https:\/\/.*\.s3-website.*\.amazonaws\.com$/, // Allow S3 website endpoints
   'http://localhost:5173'
 ];
 
@@ -42,9 +38,7 @@ app.use(cors({
     const isAllowed = allowedOrigins.some(allowed => {
       if (typeof allowed === 'string') {
         return origin === allowed;
-      } else if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
+      } 
       return false;
     });
     
@@ -114,18 +108,18 @@ async function startServer() {
     // Test database connection
     const connected = await testConnection();
     if (!connected) {
-      console.warn('⚠️  Database connection failed, but continuing...');
+      console.warn('Database connection failed, but continuing...');
     } else {
       // Run migrations
       try {
         await runMigrations();
       } catch (error) {
-        console.error('⚠️  Migration error:', error);
+        console.error(' Migration error:', error);
         // Continue even if migrations fail (tables might already exist)
       }
     }
   } catch (error) {
-    console.error('⚠️  Database initialization error:', error);
+    console.error('Database initialization error:', error);
     // Continue even if database fails (for backward compatibility)
   }
 

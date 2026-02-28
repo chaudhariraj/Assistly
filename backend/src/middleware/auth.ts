@@ -28,9 +28,3 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   }
   next();
 };
-
-// Middleware to check auth status (optional)
-export const checkAuth = (req: Request, res: Response, next: NextFunction) => {
-  // This middleware just passes through, auth status is checked in routes
-  next();
-};
