@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Send, LogOut, User, Bell, X, Plus, Moon, Sun, Edit2, Check, X as XIcon, MessageSquare, MoreVertical, ChevronDown } from 'lucide-react';
 import { sendChatMessage, logout, getProfile, getNotifications } from '../services/api';
 import { ChatMessage } from '../services/api';
@@ -461,7 +463,13 @@ const ChatPage = ({ setIsAuthenticated }: ChatPageProps) => {
                 ) : (
                   <>
                     <div className="message-content">
-                      {message.content}
+                      {message.role === 'assistant' ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        message.content
+                      )}
                     </div>
                     {message.role === 'user' && (
                       <button

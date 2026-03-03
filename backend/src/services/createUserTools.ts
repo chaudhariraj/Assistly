@@ -1,6 +1,7 @@
 import { tool } from '@langchain/core/tools';
 import { google } from 'googleapis';
 import z from 'zod';
+import crypto from 'crypto';
 
 export function createUserTools(userTokens: {
   access_token: string;

@@ -1,11 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { 
-  smartCreateEventTool, 
-  getCalenderEventsTool, 
-  smartUpdateEventTool, 
-  deleteCalendarEventsTool 
-} from '../services/googleTools';
+import { createUserTools } from '../services/createUserTools';
 
 const router = Router();
 
@@ -56,6 +51,14 @@ const deleteEventSchema = z.object({
 // Get calendar events
 router.get('/events', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { getCalenderEventsTool } = createUserTools(req.user.tokens);
     const { q, timeMin, timeMax } = getEventsSchema.parse(req.query);
     
     const result = await getCalenderEventsTool.invoke({
@@ -80,6 +83,14 @@ router.get('/events', async (req: Request, res: Response) => {
 // Create calendar event
 router.post('/events', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { smartCreateEventTool } = createUserTools(req.user.tokens);
     const eventData = createEventSchema.parse(req.body);
     
     const result = await smartCreateEventTool.invoke(eventData);
@@ -101,6 +112,14 @@ router.post('/events', async (req: Request, res: Response) => {
 // Update calendar event
 router.put('/events/:eventId', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { smartUpdateEventTool } = createUserTools(req.user.tokens);
     const { eventId } = req.params;
     const updateData = updateEventSchema.parse({
       eventId,
@@ -125,6 +144,14 @@ router.put('/events/:eventId', async (req: Request, res: Response) => {
 // Delete calendar event
 router.delete('/events/:eventId', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { deleteCalendarEventsTool } = createUserTools(req.user.tokens);
     const { eventId } = req.params;
     
     const result = await deleteCalendarEventsTool.invoke({ eventId });

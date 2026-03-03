@@ -444,7 +444,6 @@
   border-radius: 12px;
   line-height: 1.6;
   word-wrap: break-word;
-  max-width: 85%;
   position: relative;
 }
 
@@ -459,6 +458,75 @@
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Markdown styling inside assistant messages */
+.message-assistant .message-content h1,
+.message-assistant .message-content h2,
+.message-assistant .message-content h3 {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.message-assistant .message-content h1 {
+  font-size: 20px;
+}
+
+.message-assistant .message-content h2 {
+  font-size: 18px;
+}
+
+.message-assistant .message-content h3 {
+  font-size: 16px;
+}
+
+.message-assistant .message-content p {
+  margin: 4px 0 8px;
+}
+
+.message-assistant .message-content ul,
+.message-assistant .message-content ol {
+  margin: 4px 0 8px 20px;
+}
+
+.message-assistant .message-content li {
+  margin: 2px 0;
+}
+
+.message-assistant .message-content a {
+  color: #8ab4ff;
+  text-decoration: underline;
+}
+
+.message-assistant .message-content a:hover {
+  color: #c4ddff;
+}
+
+.message-assistant .message-content table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+  font-size: 14px;
+}
+
+.message-assistant .message-content th,
+.message-assistant .message-content td {
+  border: 1px solid var(--border-color);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.message-assistant .message-content th {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+}
+
+.message-assistant .message-content tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .message-edit {

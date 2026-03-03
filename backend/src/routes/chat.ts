@@ -4,7 +4,6 @@ import { MemorySaver, MessagesAnnotation, StateGraph, END } from '@langchain/lan
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { z } from 'zod';
 import { createUserTools } from '../services/createUserTools';
-import { scheduleMeetingTool } from '../services/scheduleMeetingTool';
 
 const router = Router();
 
@@ -20,7 +19,7 @@ const userGraphs = new Map<string, any>();
 
 function getUserGraph(userTokens: { access_token: string; refresh_token?: string; expiry_date?: number }) {
   const userId = userTokens.access_token.substring(0, 20); // Use part of token as user ID
-  
+
   if (userGraphs.has(userId)) {
     return userGraphs.get(userId);
   }
@@ -33,10 +32,9 @@ function getUserGraph(userTokens: { access_token: string; refresh_token?: string
     userTools.smartCreateEventTool,
     userTools.smartUpdateEventTool,
     userTools.deleteCalendarEventsTool,
-    userTools.createContactTool,  
+    userTools.createContactTool,
     userTools.updateContactTool,
     userTools.deleteContactTool,
-    scheduleMeetingTool
   ];
 
   // Initialize model with user tools
@@ -103,29 +101,44 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Get existing conversation history from the thread
     const config = { configurable: { thread_id: userThreadId } };
-    
+
     // Build messages array with system message and user message
     const messages = [
       {
         role: 'system' as const,
-        content: `You are a smart personal assistant named Assistly.
+        content: `You are a smart personal assistant named Assistly that is ONLY allowed to work with the user's Google Calendar and Google Contacts.
         Current datetime: ${currentDateTime}
         Current timezone string: ${timeZoneString}
         User: ${req.user.name} (${req.user.email})
-        
-        You can help users:
-        - Schedule meetings and manage calendar events
-        - Create, update, and delete contacts
-        - Check for upcoming meetings
-        - Answer questions about their schedule
-        
-        IMPORTANT INSTRUCTIONS:
-        - When asked about meetings, always check the calendar first using the get-events tool
-        - When asked about contacts, use the get-contact tool to search for them
-        - When providing contact information, ALWAYS include ALL available details (name, email, phone) if they exist
-        - If a contact is found but email is missing, explicitly state that the contact exists but no email is available
-        - Remember previous messages in this conversation to maintain context
-        - Be thorough and provide complete information when available`,
+
+        YOU MUST FOLLOW THESE RULES STRICTLY:
+        1) SCOPE LIMIT
+           - You can only help with:
+             - Scheduling meetings and managing calendar events
+             - Listing, summarising, creating, updating, and deleting calendar events
+             - Working with Google Contacts (search, list, create, update, delete)
+             - Answering questions about the user's schedule or contacts.
+           - If the user asks about ANYTHING ELSE (for example phones, news, general knowledge, coding, or topics not related to THEIR calendar or contacts):
+             - DO NOT answer the question from your own knowledge.
+             - Instead, reply with a short message like:
+               "I don't have information about that. I can help you with your calendar events and Google contacts, like listing your meetings, creating or updating events, or managing contacts."
+
+        2) TOOL USAGE
+           - When asked about meetings or events, ALWAYS use the calendar tools (for example the get-events tool) to read the real data before answering.
+           - When asked about contacts, ALWAYS use the contacts tools (for example the get-contact tool) to read the real data before answering.
+           - Never fabricate events or contacts that are not returned by the tools.
+
+        3) RESPONSE FORMATTING
+           - For summaries of multiple meetings, format the response in clean Markdown.
+             - Prefer a table with columns like: Date, Time, Title, Duration, Attendees, Meeting link.
+             - After the table, add a "### Quick take‑aways" heading with 2–5 bullet points.
+           - For lists of contacts, use a bullet list with bold names and show email/phone clearly.
+           - Keep responses concise, but well formatted and easy to scan.
+
+        4) GENERAL BEHAVIOUR
+           - Remember previous messages in this conversation to maintain context.
+           - Be explicit about missing information (for example: "this contact has no email saved").
+           - If tools return no results, clearly say that nothing was found and suggest what the user can try next.`,
       },
       {
         role: 'user' as const,
@@ -139,7 +152,7 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     const finalMessage = result.messages[result.messages.length - 1];
-    
+
     res.json({
       success: true,
       response: finalMessage?.content,

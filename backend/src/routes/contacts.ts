@@ -1,11 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { 
-  getContactTool, 
-  createContactTool, 
-  updateContactTool, 
-  deleteContactTool 
-} from '../services/googleTools';
+import { createUserTools } from '../services/createUserTools';
 
 const router = Router();
 
@@ -34,6 +29,14 @@ const deleteContactSchema = z.object({
 // Get contacts
 router.get('/', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { getContactTool } = createUserTools(req.user.tokens);
     const { query } = getContactsSchema.parse(req.query);
     
     const result = await getContactTool.invoke({ query });
@@ -55,6 +58,14 @@ router.get('/', async (req: Request, res: Response) => {
 // Create contact
 router.post('/', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { createContactTool } = createUserTools(req.user.tokens);
     const contactData = createContactSchema.parse(req.body);
     
     const result = await createContactTool.invoke(contactData);
@@ -77,6 +88,14 @@ router.post('/', async (req: Request, res: Response) => {
 // Update contact
 router.put('/:resourceName', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { updateContactTool } = createUserTools(req.user.tokens);
     const { resourceName } = req.params;
     const updateData = updateContactSchema.parse({
       resourceName,
@@ -103,6 +122,14 @@ router.put('/:resourceName', async (req: Request, res: Response) => {
 // Delete contact
 router.delete('/:resourceName', async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required. Please connect your Google account.',
+      });
+    }
+
+    const { deleteContactTool } = createUserTools(req.user.tokens);
     const { resourceName } = req.params;
     
     const result = await deleteContactTool.invoke({ resourceName });
